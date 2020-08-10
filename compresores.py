@@ -1,3 +1,7 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+
 class Compresor:
 
     def __init__(self, potencia, etapas):
@@ -35,13 +39,16 @@ class Compresor:
         t = self.tiempo
         t_start_start = self.t_start_start
         t_start_stop = self.t_start_stop
+        estado = self.estado
+
         if (_disponible_on is False) and (ciclo >= t_start_start):
             _disponible_on = True
-        elif tiempo < max(t_start_start, t_start_stop):
+        elif tiempo < max(t_start_start, t_start_stop) and not estado:
             _disponible_on = True
         else:
             _disponible_on = False
         self._disponible_on = _disponible_on
+
         return self._disponible_on
 
     def disponible_off(self):
@@ -60,10 +67,12 @@ class Compresor:
             self.etapas_activas = 1
             self.tiempo_on = 0
             self.tiempo_off = self.tiempo
+            self.disponible_on()
         else:
             self.etapas_activas = 0
             self.tiempo_on = self.tiempo
             self.tiempo_off = 0
+            self.disponible_off()
 
 
 def set_tiempos(compresores, start_start, start_stop, start_etapas):
@@ -84,17 +93,26 @@ t_start_stop = 240               # [s]
 t_start_compresores = 30         # [s]
 t_start_etapas = 5               # [s]
 
-compresores = [None]*numero_compresores
+compresor = [None]*numero_compresores
 
 for i in range(4):
-    compresores[i] = Compresor(potencia=125, etapas=numero_etapas)
+    compresor[i] = Compresor(potencia=125, etapas=numero_etapas)
 
-compresores[0].estado = True
-set_tiempos(compresores, t_start_start, t_start_stop, t_start_etapas)
+compresor[0].estado = True
+set_tiempos(compresor, t_start_start, t_start_stop, t_start_etapas)
 
 tiempo = 0
+t = np.linspace(0, 499, 500)
+disponibilidad = np.zeros((500, 4))
 while tiempo < 500:
     for i in range(4):
-        compresores[i].aumentar_tiempo(paso)
+        compresor[i].aumentar_tiempo(paso)
+        disponibilidad[tiempo, i] = compresor[i].disponible_on()
     tiempo += 1
-print(compresores[0].disponible_on())
+
+plt.plot(t, disponibilidad[:, 0])
+plt.plot(t, disponibilidad[:, 1])
+plt.plot(t, disponibilidad[:, 2])
+plt.plot(t, disponibilidad[:, 3])
+plt.legend(["Compresor 1", "Compresor 2", "Compresor 3", "Compresor 4"])
+plt.show()
